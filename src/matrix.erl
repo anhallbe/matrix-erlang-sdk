@@ -15,11 +15,20 @@
 %% @doc A small experimental Matrix client.
 
 -module(matrix).
--export([init/0, login/3, joinRoom/3, sendTextMessage/4, listen/3]).
+-export([init/0, login/3, joinRoom/3, sendTextMessage/4, listen/3, helloMatrix/4]).
 
 -define(API_URL, "/_matrix/client/api/v1/").
 
 -define(DEBUG, false).
+
+%Initiate, login, join a room, send a "Hello from Erlang" message.
+%Example: matrix:helloMatrix("https:myhomeserv.er:8008", "myusername", "mypassword", "#publicroom:myhomeserv.er").
+helloMatrix(Homeserver, Username, Password, RoomAlias) ->
+	init(),
+	AccessToken = login(Username, Password, Homeserver),
+	RoomID = joinRoom(RoomAlias, AccessToken, Homeserver),
+	sendTextMessage("Hello from Erlang!", RoomID, AccessToken, Homeserver),
+	"Success! Look at the chat to see the message.".
 
 %Initiate by starting http client, ssl, listening processes etc.
 init() ->
@@ -84,7 +93,7 @@ listen(RoomId, AccessToken, End, Server) ->
 %Returns the response body as JSON, will probably crash if anything goes wrong.
 api_post(Resource, Body, Server) ->
 	Method = post,
-	URL = string:concat(Server, string:concat(?API_URL, Resource)),
+	URL = escape_url(string:concat(Server, string:concat(?API_URL, Resource))),
 	log("POST_URL", URL),
 	log("POST_REQUEST", Body),
 	Header = [],
@@ -101,7 +110,7 @@ api_post(Resource, Body, Server) ->
 %TODO: Make it easier to insert qs.
 api_get(Resource, Server) ->
 	Method = get,
-	URL = string:concat(Server, string:concat(?API_URL, Resource)),
+	URL = escape_url(string:concat(Server, string:concat(?API_URL, Resource))),
 	log("GET_URL", URL),
 	Header = [],
 	HttpOptions = [],
@@ -145,3 +154,7 @@ print([H|T]) ->
 print(Message) ->
 	io:fwrite(Message),
 	io:fwrite("\n").
+
+%%TODO: Really, really should not do it this way. Temporary fix. Escape the whole URL properly instead.
+escape_url(URL) ->
+	re:replace(URL,"#","%23",[{return,list}]).
