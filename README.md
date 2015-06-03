@@ -2,7 +2,16 @@
 
 A simple REST wrapper for Matrix.org for Erlang development.
 
+## Status
+Early development. Essentially a "hello world" library at the moment.
+
 ## Usage (module: matrix)
+
+Hello Matrix!
+```erlang
+matrix:helloMatrix("https://myhomeserv.er:port", "myusername", "mypassword", "#someroom:myhomeserv.er").
+```
+
 Initiate:
 ```erlang
 Homeserver = "http://theserver.domain:port"
@@ -24,16 +33,11 @@ Send a message:
 matrix:sendTextMessage("The message", RoomID, AccessToken, Homeserver).
 ```
 
-Listen for messages (runs forever, will not let you terminate the program!)
+Listen for text messages (runs forever, will not terminate!)
 ```erlang
 matrix:listen(RoomID, AccessToken, Homeserver).
 ```
 
-## Usage (module: matrix_cli_client)
-This will initiate, log in, join room, send a message and exit.
-```erlang
-matrix_cli_client:run("https://yourserver.asd", "#theroom:homeserver", "username", "password").
-```
 ## Note
 Depends on **Jiffy** (https://github.com/davisp/jiffy) for JSON-handling.
-Install with **apt-get install erlang-jiffy**.
+Install with **rebar get-deps** or **apt-get install erlang-jiffy**.
