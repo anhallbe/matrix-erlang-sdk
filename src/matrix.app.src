@@ -1,0 +1,14 @@
+{application, matrix,
+ [
+  {description, "An Erlang matrix library"},
+  {vsn, "1"},
+  {modules, [
+             matrix
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
