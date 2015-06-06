@@ -17,6 +17,10 @@
 -module(matrix).
 -export([init/0, login/3, joinRoom/3, sendTextMessage/4, listen/3, helloMatrix/4]).
 
+-ifdef (TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 -define(API_URL, "/_matrix/client/api/v1/").
 
 -define(DEBUG, false).
@@ -158,3 +162,29 @@ print(Message) ->
 %%TODO: Really, really should not do it this way. Temporary fix. Escape the whole URL properly instead.
 escape_url(URL) ->
 	re:replace(URL,"#","%23",[{return,list}]).
+
+
+%%-------------------------------------------
+%%                TESTS
+%%-------------------------------------------
+-ifdef(TEST).
+
+init_test() ->
+	?assert(ok == init()).
+
+getAPI_test() ->
+	?debugMsg("getAPI_test not implemented").
+
+postAPI_test() ->
+	?debugMsg("postAPI_test not implemented").
+
+login_test() ->
+	?debugMsg("login_test not implemented").
+
+joinRoom_test() ->
+	?debugMsg("joinRoom_test not implemented").
+
+sendTextMessage_test() ->
+	?debugMsg("sendTextMessage_test not implemented").
+
+-endif.
