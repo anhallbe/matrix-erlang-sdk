@@ -8,10 +8,10 @@ start() ->
     matrix:init(),
     {ok, AccessToken} = matrix:login(User, Password, Homeserver),
     {ok, RoomId} = matrix:joinRoom(RoomAlias, AccessToken, Homeserver),
-    spawn(matrix, listen, [RoomId, AccessToken, Homeserver, self()]),
-    cli_output(User, AccessToken, Homeserver, RoomId).
-    %spawn(fun() -> cli_output(User, AccessToken, Homeserver, RoomId) end).
-    %cli_input(User, AccessToken, Homeserver, RoomId).
+    OutputPid = spawn(fun() -> cli_output(User, AccessToken, Homeserver, RoomId) end),
+    spawn(matrix, listen, [RoomId, AccessToken, Homeserver, OutputPid]),
+    %cli_output(User, AccessToken, Homeserver, RoomId),
+    cli_input(User, AccessToken, Homeserver, RoomId).
 
 cli_output(User, AccessToken, Homeserver, RoomId) ->
   %io:format("Waiting for messages... My pid is ~p~n", [self()]),
@@ -25,6 +25,7 @@ cli_output(User, AccessToken, Homeserver, RoomId) ->
   end.
 
 cli_input(User, AccessToken, Homeserver, RoomId) ->
-  {ok, [Input]} = io:fread("> ", "~s"),
-  matrix:sendTextMessage(Input, RoomId, AccessToken, Homeserver),
+  %{ok, [Input]} = io:fread("> ", "~s"),
+  Line = io:get_line(User ++ " > "),
+  matrix:sendTextMessage(Line, RoomId, AccessToken, Homeserver),
   cli_input(User, AccessToken, Homeserver, RoomId).
