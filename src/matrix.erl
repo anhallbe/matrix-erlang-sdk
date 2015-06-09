@@ -79,7 +79,7 @@ listen(RoomId, AccessToken, Server) ->
 
 %Listen for text messages (or any events) by polling.
 %TODO: Run in separate process end send messages to whoever is listening..
-listen(RoomId, AccessToken, End, Server) ->
+listen(RoomId, AccessToken, _, Server) ->
 	Resource = "events",
 	Response = api_get(Resource, AccessToken, Server),
 	#{<<"chunk">> := Chunk, <<"end">> := NEnd} = Response,
@@ -105,7 +105,7 @@ api_post(Resource, Body, Server) ->
 	HttpOptions = [],
 	Options = [],
 	Resp = httpc:request(Method, {URL, Header, Type, Body}, HttpOptions, Options),
-	{ok, {{Version, 200, ReasonPhrase}, RHeaders, RBody}} = Resp,
+	{ok, {{_, 200, _}, _, RBody}} = Resp,
 	log("POST_RESPONSE", RBody),
 	jiffy:decode(RBody, [return_maps]).
 
