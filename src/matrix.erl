@@ -15,7 +15,7 @@
 %% @doc A small experimental Matrix client.
 
 -module(matrix).
--export([init/0, login/3, joinRoom/3, sendTextMessage/4, listen/3, helloMatrix/4]).
+-export([init/0, login/3, joinRoom/3, sendTextMessage/4, listen/4, helloMatrix/4]).
 
 -ifdef (TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -69,7 +69,7 @@ sendTextMessage(Message, RoomId, AccessToken, Server) ->
 
 %Listen for TEXT messages in the given room. This will essentially listen forever and prevent the program from terminating!
 %TODO: Fix that.. This should probably run in a separate process.
-listen(RoomId, AccessToken, Server) ->
+listen(RoomId, AccessToken, Server, Listener) ->
 	Resource = string:concat("rooms/", string:concat(RoomId, "/messages")),
 	Sync = api_get(Resource, AccessToken, Server),
 	#{<<"end">> := End, <<"start">>:= Start} = Sync,
@@ -79,7 +79,7 @@ listen(RoomId, AccessToken, Server) ->
 
 %Listen for text messages (or any events) by polling.
 %TODO: Run in separate process end send messages to whoever is listening..
-listen(RoomId, AccessToken, _, Server) ->
+listen(RoomId, AccessToken, _, Server, Listener) ->
 	Resource = "events",
 	Response = api_get(Resource, AccessToken, Server),
 	#{<<"chunk">> := Chunk, <<"end">> := NEnd} = Response,
@@ -87,7 +87,8 @@ listen(RoomId, AccessToken, _, Server) ->
 	case Chunk of
 		#{content := Content, type := <<"m.room.message">>, <<"user_id">> := UserId} ->
 			#{body := Body, msgtype := <<"m.text">>} = Content,
-			print([UserId, " >> ", Body]);
+			Listener ! {matrix, roomlistener, {RoomId, UserId, Content}};
+			%print([UserId, " >> ", Body]);
 		_Else ->
 			asd
 	end,
