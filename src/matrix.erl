@@ -45,34 +45,34 @@ init() ->
 login(Username, Password, Server) ->
 	UN = erlang:list_to_binary(Username),
 	PW = erlang:list_to_binary(Password),
-	Raw = {[{type, 'm.login.password'}, {user, UN}, {password, PW}]},
+	Raw = #{type => 'm.login.password', user => UN, password => PW},
 	Encoded = jiffy:encode(Raw),
 	Credentials = api_post("login", Encoded, Server),
-	{[{<<"access_token">>, Token}, _, _]} = Credentials,
-	erlang:binary_to_list(Token).
+	#{<<"access_token">> := Token} = Credentials,
+	{ok, erlang:binary_to_list(Token)}.
 
 %Join a room by its' alias or ID. Make sure you have received an access token from login/3.
 %Returns the room ID.
 joinRoom(RoomIdOrAlias, AccessToken, Server) ->
 	Resource = string:concat("join/", RoomIdOrAlias),
-	Body = jiffy:encode({[]}),
+	Body = jiffy:encode(#{}),
 	JoinResp = api_post(Resource, Body, AccessToken, Server),
-	{[{<<"room_id">>, RoomId}]} = JoinResp,
-	erlang:binary_to_list(RoomId).
+	#{<<"room_id">> := RoomId} = JoinResp,
+	{ok, erlang:binary_to_list(RoomId)}.
 
 %Send a TEXT message to the given room.
 sendTextMessage(Message, RoomId, AccessToken, Server) ->
 	Resource = string:concat("rooms/", string:concat(RoomId, "/send/m.room.message")),
-	Body = jiffy:encode({[{body, erlang:list_to_binary(Message)}, {msgtype, <<"m.text">>}]}),
-	api_post(Resource, Body, AccessToken, Server),
-	ok.
+	Body = jiffy:encode(#{body => erlang:list_to_binary(Message), msgtype => <<"m.text">>}),
+	Res = api_post(Resource, Body, AccessToken, Server),
+	{ok, Res}.
 
 %Listen for TEXT messages in the given room. This will essentially listen forever and prevent the program from terminating!
 %TODO: Fix that.. This should probably run in a separate process.
 listen(RoomId, AccessToken, Server) ->
 	Resource = string:concat("rooms/", string:concat(RoomId, "/messages")),
 	Sync = api_get(Resource, AccessToken, Server),
-	{[{<<"chunk">>, _}, {<<"end">>, End}, {<<"start">>, Start}]} = Sync,
+	#{<<"end">> := End, <<"start">>:= Start} = Sync,
 	log("Start", Start),
 	log("End", End),
 	listen(RoomId, AccessToken, erlang:binary_to_list(End), Server).
@@ -82,11 +82,11 @@ listen(RoomId, AccessToken, Server) ->
 listen(RoomId, AccessToken, End, Server) ->
 	Resource = "events",
 	Response = api_get(Resource, AccessToken, Server),
-	{[{<<"chunk">>, Chunk}, {<<"end">>, NEnd}, _]} = Response,
+	#{<<"chunk">> := Chunk, <<"end">> := NEnd} = Response,
 %% 	log("chunk", jiffy:encode(Chunk, [pretty])),
 	case Chunk of
-		[{[{<<"age">>, _}, {<<"content">>, Content}, {<<"event_id">>, _}, {<<"origin_server_ts">>, _}, {<<"room_id">>, Rid}, {<<"type">>, <<"m.room.message">>}, {<<"user_id">>, UserId}]}] ->
-			{[{<<"body">>, Body}, {<<"msgtype">>, <<"m.text">>}]} = Content,
+		#{content := Content, type := <<"m.room.message">>, <<"user_id">> := UserId} ->
+			#{body := Body, msgtype := <<"m.text">>} = Content,
 			print([UserId, " >> ", Body]);
 		_Else ->
 			asd
@@ -107,7 +107,7 @@ api_post(Resource, Body, Server) ->
 	Resp = httpc:request(Method, {URL, Header, Type, Body}, HttpOptions, Options),
 	{ok, {{Version, 200, ReasonPhrase}, RHeaders, RBody}} = Resp,
 	log("POST_RESPONSE", RBody),
-	jiffy:decode(RBody).
+	jiffy:decode(RBody, [return_maps]).
 
 %Perform a GET request to Server/API_URL/Resource
 %Returns the response body as JSON.
@@ -122,7 +122,7 @@ api_get(Resource, Server) ->
 	Resp = httpc:request(Method, {URL, Header}, HttpOptions, Options),
 	{ok, {{_, 200, _}, _, RBody}} = Resp,
 	log("GET_RESPONSE", RBody),
-	jiffy:decode(RBody).
+	jiffy:decode(RBody, [return_maps]).
 
 %Perform authenticated POST.
 api_post(Resource, Body, AccessToken, Server) ->
@@ -161,6 +161,7 @@ print(Message) ->
 
 %%TODO: Really, really should not do it this way. Temporary fix. Escape the whole URL properly instead.
 escape_url(URL) ->
+	log("ESCAPEURL", URL),
 	re:replace(URL,"#","%23",[{return,list}]).
 
 
