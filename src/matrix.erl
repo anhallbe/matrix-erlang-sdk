@@ -75,7 +75,7 @@ listen(RoomId, AccessToken, Server, Listener) ->
 	#{<<"end">> := End, <<"start">>:= Start} = Sync,
 	log("Start", Start),
 	log("End", End),
-	listen(RoomId, AccessToken, erlang:binary_to_list(End), Server).
+	listen(RoomId, AccessToken, erlang:binary_to_list(End), Server, Listener).
 
 %Listen for text messages (or any events) by polling.
 %TODO: Run in separate process end send messages to whoever is listening..
@@ -83,29 +83,23 @@ listen(RoomId, AccessToken, _, Server, Listener) ->
 	Resource = "events",
 	Response = api_get(Resource, AccessToken, Server),
 	#{<<"chunk">> := Chunk, <<"end">> := NEnd} = Response,
-%% 	log("chunk", jiffy:encode(Chunk, [pretty])),
 	case Chunk of
-		#{content := Content, type := <<"m.room.message">>, <<"user_id">> := UserId} ->
-			#{body := Body, msgtype := <<"m.text">>} = Content,
-			Listener ! {matrix, roomlistener, {RoomId, UserId, Content}};
-			%print([UserId, " >> ", Body]);
-		_Else ->
-			asd
+		[#{<<"content">> := Content, <<"type">> := <<"m.room.message">>, <<"user_id">> := UserId}] ->
+			#{<<"body">> := Body, <<"msgtype">> := <<"m.text">>} = Content,
+			log("LISTEN", "Got message, sending to Listener."),
+			Listener ! {matrix, roomlistener, {RoomId, erlang:binary_to_list(UserId), erlang:binary_to_list(Body)}};
+		_SomethingElse ->
+			log("LISTEN", "Got message, ignored it...")
 	end,
-	listen(RoomId, AccessToken, NEnd, Server).
+	listen(RoomId, AccessToken, NEnd, Server, Listener).
 
 %Helper function that performs a POST request to Server/API_URL/Resource, with a json-formatted Body.
 %Returns the response body as JSON, will probably crash if anything goes wrong.
 api_post(Resource, Body, Server) ->
-	Method = post,
 	URL = escape_url(string:concat(Server, string:concat(?API_URL, Resource))),
 	log("POST_URL", URL),
 	log("POST_REQUEST", Body),
-	Header = [],
-	Type = "application/json",
-	HttpOptions = [],
-	Options = [],
-	Resp = httpc:request(Method, {URL, Header, Type, Body}, HttpOptions, Options),
+	Resp = httpc:request(post, {URL, [], "application/json", Body}, [], []),
 	{ok, {{_, 200, _}, _, RBody}} = Resp,
 	log("POST_RESPONSE", RBody),
 	jiffy:decode(RBody, [return_maps]).
@@ -114,13 +108,9 @@ api_post(Resource, Body, Server) ->
 %Returns the response body as JSON.
 %TODO: Make it easier to insert qs.
 api_get(Resource, Server) ->
-	Method = get,
 	URL = escape_url(string:concat(Server, string:concat(?API_URL, Resource))),
 	log("GET_URL", URL),
-	Header = [],
-	HttpOptions = [],
-	Options = [],
-	Resp = httpc:request(Method, {URL, Header}, HttpOptions, Options),
+	Resp = httpc:request(get, {URL, []}, [], []),
 	{ok, {{_, 200, _}, _, RBody}} = Resp,
 	log("GET_RESPONSE", RBody),
 	jiffy:decode(RBody, [return_maps]).
@@ -146,19 +136,6 @@ log(Tag, Message) ->
 	   true ->
 		   ok
 	end.
-
-%Pretty prints......
-print([M]) ->
-	io:fwrite(M),
-	io:fwrite("\n");
-
-print([H|T]) ->
-	io:fwrite(H),
-	print(T);
-
-print(Message) ->
-	io:fwrite(Message),
-	io:fwrite("\n").
 
 %%TODO: Really, really should not do it this way. Temporary fix. Escape the whole URL properly instead.
 escape_url(URL) ->
