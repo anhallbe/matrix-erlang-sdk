@@ -3,7 +3,8 @@
   {description, "An Erlang matrix library"},
   {vsn, "1"},
   {modules, [
-             matrix
+             matrix,
+             matrixcli
             ]},
   {registered, []},
   {applications, [
