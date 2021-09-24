@@ -2,7 +2,8 @@
 
 A simple REST wrapper for Matrix.org for Erlang development.
 
-NOTE: ⚠️ Hasn't been maintained for a long while. Don't use this.
+## ⚠️ NOTE
+Hasn't been maintained for a long while. Don't use this.
 
 ## Status
 Early development. Essentially a "hello world" library at the moment.
